@@ -1,10 +1,30 @@
-function filterData() {
-  event.preventDefult();
-  var startdate = document.getElementById("startdate").value;
-  var enddate = document.getElementById("enddate").value;
+function filterData(event) {
+  event.preventDefault(); // Corrected the spelling from 'preventDefult' to 'preventDefault'
+  
+  var startdate = new Date(document.getElementById("startdate").value);
+  var enddate = new Date(document.getElementById("enddate").value);
   console.log("Starting date: " + startdate);
   console.log("Ending date: " + enddate);
-  fetch("https://compute.samford.edu/zohauth/clients/data");
+  
+  // Get all rows in the table
+  var rows = document.querySelectorAll("#data-table tr");
+  
+  // Loop through rows and hide/show based on date range
+  rows.forEach((row, index) => {
+      // Skip the header row
+      if (index === 0) return;
+
+      // Get the date from the row (assumed to be in the 4th column)
+      var dateCell = row.cells[3].textContent; // Adjust index if needed
+      var rowDate = new Date(dateCell);
+
+      // Check if the row date is within the range
+      if (rowDate >= startdate && rowDate <= enddate) {
+          row.style.display = ""; // Show row
+      } else {
+          row.style.display = "none"; // Hide row
+      }
+  });
 }
 
 const url = 'https://compute.samford.edu/zohauth/clients/datajson';

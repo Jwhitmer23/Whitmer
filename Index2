@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pitch Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .red {
+            color: red;
+        }
+        th {
+            cursor: pointer;
+        }
+        .sorted-asc::after {
+            content: " ↑";
+        }
+        .sorted-desc::after {
+            content: " ↓";
+        }
+    </style>
+</head>
+<body>
+    <h1 class="red">Trackman Pitch Status Viewer</h1>
+    <form onsubmit="filterData(event);">
+        <label>Starting date</label>
+        <input type="date" id="startdate">
+        <label>Ending date</label>
+        <input type="date" id="enddate">
+        <button>Filter</button>
+    </form>
+    <table id="data-table">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">ID</th>
+                <th onclick="sortTable(1)">Speed</th>
+                <th onclick="sortTable(2)">Result</th>
+                <th onclick="sortTable(3)">Datetime</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+
+    <script>
+        const url = 'https://compute.samford.edu/zohauth/clients/datajson';
+
+        async function fetchData() {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                populateTable(data);
+            } catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+        }
+
+        function populateTable(data) {
+            const tableBody = document.querySelector('#data-table tbody');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+
+                const idCell = document.createElement('td');
+                idCell.innerHTML = `<a href="details.html?id=${item.id}">Pitch ${item.id}</a>`;
+
+                const speedCell = document.createElement('td');
+                speedCell.textContent = item.speed || '--';
+
+                const resultCell = document.createElement('td');
+                resultCell.textContent = item.result || '--';
+
+                const datetimeCell = document.createElement('td');
+                datetimeCell.textContent = item.datetime || '--';
+
+                row.appendChild(idCell);
+                row.appendChild(speedCell);
+                row.appendChild(resultCell);
+                row.appendChild(datetimeCell);
+
+                tableBody.appendChild(row);
+            });
+        }
+
+        function filterData(event) {
+            event.preventDefault();
+            const startdate = new Date(document.getElementById("startdate").value);
+            const enddate = new Date(document.getElementById("enddate").value);
+            const rows = document.querySelectorAll("#data-table tbody tr");
+
+            rows.forEach(row => {
+                const dateCell = row.cells[3].textContent;
+                const rowDate = new Date(dateCell);
+                if (rowDate >= startdate && rowDate <= enddate) {
+                    row.style.display = ""; // Show row
+                } else {
+                    row.style.display = "none"; // Hide row
+                }
+            });
+        }
+
+        let sortOrder = 1; // 1 for ascending, -1 for descending
+        let currentSortIndex = -1;
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById('data-table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            // Check if the same column is clicked again
+            if (currentSortIndex === columnIndex) {
+                sortOrder *= -1; // Toggle sort order
+            } else {
+                sortOrder = 1; // Reset to ascending
+                currentSortIndex = columnIndex; // Update current sort index
+            }
+
+            rows.sort((a, b) => {
+                const cellA = a.cells[columnIndex].textContent.trim();
+                const cellB = b.cells[columnIndex].textContent.trim();
+
+                if (!isNaN(cellA) && !isNaN(cellB)) { // If numeric
+                    return (cellA - cellB) * sortOrder;
+                }
+                return cellA.localeCompare(cellB) * sortOrder; // If string
+            });
+
+            // Remove existing rows and append sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+
+            // Remove previous sort indicators
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                header.classList.remove('sorted-asc', 'sorted-desc');
+                if (index === columnIndex) {
+                    header.classList.add(sortOrder === 1 ? 'sorted-asc' : 'sorted-desc');
+                }
+            });
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
